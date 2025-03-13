@@ -17,6 +17,7 @@ export default function Home() {
 
   const [results, setResults] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [currentCase, setCurrentCase] = useState(0);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -37,7 +38,7 @@ export default function Home() {
         velocity_max: parseFloat(formData.velocity_max),
         velocity_res: parseFloat(formData.velocity_res),
         angular_res: parseFloat(formData.angular_res),
-        frequency: parseFloat(formData.frequency)
+        frequency: parseFloat(formData.frequency) * 1e9
       };
 
       // Validate inputs
@@ -156,7 +157,7 @@ export default function Home() {
 
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-300">
-                Frequency (Hz)
+                Starting Frequency (GHz)
               </label>
               <input
                 type="number"
@@ -180,23 +181,40 @@ export default function Home() {
             type="submit"
             className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
           >
-            Calculate Parameters
+            Generate Parameters
           </button>
         </form>
 
         {/* Results */}
-        {results.map((result, idx) => (
-          <div key={idx} className="bg-gray-800 rounded-lg p-6 shadow-xl mb-8">
-            <h2 className="text-2xl font-bold mb-6 text-blue-400">
-              Case {idx + 1}: Acquisition Samples = {result.samples}
-            </h2>
+        {results.length > 0 && (
+          <div className="bg-gray-800 rounded-lg p-6 shadow-xl mb-8">
+            <div className="flex flex-col items-center mb-6">
+              <h2 className="text-2xl font-bold text-blue-400 mb-4">
+                Case {currentCase + 1}: Acquisition Samples = {results[currentCase].samples}
+              </h2>
+              <div className="flex gap-4">
+                {ACQUISITION_SAMPLES.map((samples, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentCase(idx)}
+                    className={`px-6 py-2 rounded-md transition-colors ${
+                      currentCase === idx
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                    }`}
+                  >
+                    Case {idx + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Requested vs Obtained Parameters */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-gray-300">Requested Parameters</h3>
                 <div className="space-y-2">
-                  {Object.entries(result.requestedParams).map(([key, value]) => (
+                  {Object.entries(results[currentCase].requestedParams).map(([key, value]) => (
                     <div key={key} className="flex justify-between">
                       <span className="text-gray-400">{key.replace(/_/g, ' ').toUpperCase()}</span>
                       <span className="font-mono">{Number(value).toFixed(2)}</span>
@@ -208,7 +226,7 @@ export default function Home() {
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-gray-300">Obtained Parameters</h3>
                 <div className="space-y-2">
-                  {Object.entries(result.obtainedParams).map(([key, value]) => (
+                  {Object.entries(results[currentCase].obtainedParams).map(([key, value]) => (
                     <div key={key} className="flex justify-between">
                       <span className="text-gray-400">{key.replace(/_/g, ' ').toUpperCase()}</span>
                       <span className="font-mono">{Number(value).toFixed(2)}</span>
@@ -222,7 +240,7 @@ export default function Home() {
             <div className="mb-8">
               <h3 className="text-xl font-semibold text-gray-300 mb-4">CHIRP Frequency Parameters</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {Object.entries(result.chirpFrequencyParams as Record<string, number>).map(([key, value]) => (
+                {Object.entries(results[currentCase].chirpFrequencyParams as Record<string, number>).map(([key, value]) => (
                   <div key={key} className="bg-gray-700 p-4 rounded-lg">
                     <div className="text-sm text-gray-400">{key.replace(/_/g, ' ').toUpperCase()}</div>
                     <div className="font-mono text-lg">
@@ -240,7 +258,7 @@ export default function Home() {
             <div className="mb-8">
               <h3 className="text-xl font-semibold text-gray-300 mb-4">CHIRP Timing Parameters</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(result.chirpTimingParams).map(([key, value]) => (
+                {Object.entries(results[currentCase].chirpTimingParams).map(([key, value]) => (
                   <div key={key} className="bg-gray-700 p-4 rounded-lg">
                     <div className="text-sm text-gray-400">{key.replace(/_/g, ' ').toUpperCase()}</div>
                     <div className="font-mono text-lg">{Number(value).toFixed(2)} μs</div>
@@ -255,26 +273,26 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-700 p-4 rounded-lg">
                   <div className="text-sm text-gray-400">FRAME TIME</div>
-                  <div className="font-mono text-lg">{result.frameParams.frame_time.toFixed(2)} ms</div>
+                  <div className="font-mono text-lg">{results[currentCase].frameParams.frame_time.toFixed(2)} ms</div>
                 </div>
                 <div className="bg-gray-700 p-4 rounded-lg">
                   <div className="text-sm text-gray-400">NUMBER OF CHIRPS</div>
-                  <div className="font-mono text-lg">{result.frameParams.no_of_chirps}</div>
+                  <div className="font-mono text-lg">{results[currentCase].frameParams.no_of_chirps}</div>
                 </div>
               </div>
             </div>
 
             {/* Antennas */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-gray-300 mb-4">Antennas</h3>
+              <h3 className="text-xl font-semibold text-gray-300 mb-4">Minimum Number of Antennas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-700 p-4 rounded-lg">
                   <div className="text-sm text-gray-400">TX</div>
-                  <div className="font-mono text-lg">{result.antennas.tx}</div>
+                  <div className="font-mono text-lg">{results[currentCase].antennas.tx}</div>
                 </div>
                 <div className="bg-gray-700 p-4 rounded-lg">
                   <div className="text-sm text-gray-400">RX</div>
-                  <div className="font-mono text-lg">{result.antennas.rx}</div>
+                  <div className="font-mono text-lg">{results[currentCase].antennas.rx}</div>
                 </div>
               </div>
             </div>
@@ -285,11 +303,11 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-700 p-4 rounded-lg">
                   <div className="text-sm text-gray-400">TIME OF FLIGHT</div>
-                  <div className="font-mono text-lg">{result.timeOfFlight.toFixed(2)} μs</div>
+                  <div className="font-mono text-lg">{results[currentCase].timeOfFlight.toFixed(2)} μs</div>
                 </div>
                 <div className="bg-gray-700 p-4 rounded-lg">
                   <div className="text-sm text-gray-400">MEMORY REQUIRED</div>
-                  <div className="font-mono text-lg">{result.memoryRequired.toFixed(2)} kilobits per frame</div>
+                  <div className="font-mono text-lg">{results[currentCase].memoryRequired.toFixed(2)} kilobits per frame</div>
                 </div>
               </div>
             </div>
@@ -297,7 +315,7 @@ export default function Home() {
             {/* IF Bandwidth Table */}
             <div>
               <h3 className="text-xl font-semibold text-gray-300 mb-4">
-                IF Bandwidth Table for Range Max {result.requestedParams.range_max}m
+                IF Bandwidth Table for Range Max {results[currentCase].requestedParams.range_max}m
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -308,7 +326,7 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {result.ifBandwidthTable.map((row: any, i: number) => (
+                    {results[currentCase].ifBandwidthTable.map((row: any, i: number) => (
                       <tr key={i} className={i % 2 === 0 ? 'bg-gray-800' : 'bg-gray-700/50'}>
                         <td className="px-4 py-2">{row.chirp_bandwidth}</td>
                         <td className="px-4 py-2">{row.if_bandwidth.toFixed(2)}</td>
@@ -319,7 +337,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        ))}
+        )}
       </div>
     </main>
   );
