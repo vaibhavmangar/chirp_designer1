@@ -6,6 +6,57 @@ import ImageVisualizer from './components/ImageVisualizer';
 
 const ACQUISITION_SAMPLES = [512, 1024, 2048];
 
+// Add these interfaces at the top of the file after the imports
+interface BandwidthTableRow {
+  chirp_bandwidth: number;
+  if_bandwidth: number;
+}
+
+interface RadarResult {
+  samples: number;
+  requestedParams: {
+    range_max: number;
+    range_res: number;
+    velocity_max: number;
+    velocity_res: number;
+    angular_res: number;
+  };
+  obtainedParams: {
+    range_max: number;
+    range_res: number;
+    velocity_max: number;
+    velocity_res: number;
+    angular_res: number;
+  };
+  chirpFrequencyParams: {
+    start_freq: number;
+    center_freq: number;
+    end_freq: number;
+    bandwidth: number;
+  };
+  chirpTimingParams: {
+    dc_power_on_delay_time: number;
+    dwell_time: number;
+    settle_time: number;
+    acquisition_time: number;
+    reset_time: number;
+    jumpback_time: number;
+    idle_time: number;
+    chirp_time: number;
+  };
+  frameParams: {
+    frame_time: number;
+    no_of_chirps: number;
+  };
+  antennas: {
+    tx: number;
+    rx: number;
+  };
+  timeOfFlight: number;
+  memoryRequired: number;
+  ifBandwidthTable: BandwidthTableRow[];
+}
+
 export default function Home() {
   const [formData, setFormData] = useState({
     range_res: '',
@@ -16,7 +67,7 @@ export default function Home() {
     frequency: ''
   });
 
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<RadarResult[]>([]);
   const [error, setError] = useState('');
   const [showImage, setShowImage] = useState(false);
 
@@ -98,122 +149,127 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Input Form */}
-        <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-6 shadow-xl mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Range Resolution (m)
-              </label>
-              <input
-                type="number"
-                name="range_res"
-                value={formData.range_res}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
-                step="any"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Maximum Range (m)
-              </label>
-              <input
-                type="number"
-                name="range_max"
-                value={formData.range_max}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
-                step="any"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Maximum Velocity (km/hr)
-              </label>
-              <input
-                type="number"
-                name="velocity_max"
-                value={formData.velocity_max}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
-                step="any"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Velocity Resolution (km/hr)
-              </label>
-              <input
-                type="number"
-                name="velocity_res"
-                value={formData.velocity_res}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
-                step="any"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Angular Resolution (degrees)
-              </label>
-              <input
-                type="number"
-                name="angular_res"
-                value={formData.angular_res}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
-                step="any"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Frequency (Hz)
-              </label>
-              <input
-                type="number"
-                name="frequency"
-                value={formData.frequency}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
-                step="any"
-                required
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="mt-4 p-3 bg-red-500/20 border border-red-500 rounded-md text-red-300">
-              {error}
-            </div>
-          )}
-
-          <div className="mt-6 flex gap-4">
+        {/* New Calculation Button */}
+        {results.length > 0 ? (
+          <div className="flex justify-center mb-8">
             <button
-              type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-            >
-              Generate
-            </button>
-            <button
-              type="button"
               onClick={handleNewCalculation}
-              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-md transition-colors"
             >
               New Calculation
             </button>
           </div>
-        </form>
+        ) : (
+          /* Input Form */
+          <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-6 shadow-xl mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Range Resolution (m)
+                </label>
+                <input
+                  type="number"
+                  name="range_res"
+                  value={formData.range_res}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
+                  step="any"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Maximum Range (m)
+                </label>
+                <input
+                  type="number"
+                  name="range_max"
+                  value={formData.range_max}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
+                  step="any"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Maximum Velocity (km/hr)
+                </label>
+                <input
+                  type="number"
+                  name="velocity_max"
+                  value={formData.velocity_max}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
+                  step="any"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Velocity Resolution (km/hr)
+                </label>
+                <input
+                  type="number"
+                  name="velocity_res"
+                  value={formData.velocity_res}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
+                  step="any"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Angular Resolution (degrees)
+                </label>
+                <input
+                  type="number"
+                  name="angular_res"
+                  value={formData.angular_res}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
+                  step="any"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Frequency (Hz)
+                </label>
+                <input
+                  type="number"
+                  name="frequency"
+                  value={formData.frequency}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 text-white"
+                  step="any"
+                  required
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-500/20 border border-red-500 rounded-md text-red-300">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-6 flex gap-4">
+              <button
+                type="submit"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+              >
+                Generate
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* Image Visualization */}
         {showImage && (
@@ -223,6 +279,15 @@ export default function Home() {
               imagePath="/chirp-design.png"
               alt="CHIRP Design"
             />
+          </div>
+        )}
+
+        {/* IF_Max Information - Single line for all cases */}
+        {results.length > 0 && (
+          <div className="mb-8">
+            <p className="text-center text-lg font-semibold text-yellow-400 bg-gray-700/50 p-3 rounded-md">
+              All parameters are based on taking IF_Max = 40 MHz
+            </p>
           </div>
         )}
 
