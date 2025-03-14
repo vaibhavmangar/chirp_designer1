@@ -5,8 +5,10 @@ export class RadarSystem {
     private static readonly N_TX_MAX = 8;
     private static readonly N_RX_MAX = 8;
     private static readonly DWELL_TIME = 2e-6;  // (seconds)
-    private static readonly SETUP_TIME = 1e-6;  // (seconds)
+    private static readonly SETTLE_TIME = 1e-6;  // (seconds)
     private static readonly RESET_TIME = 1e-6;  // (seconds)
+    private static readonly JUMPBACK_TIME = 0.3e-6;  // (seconds)
+    private static readonly DC_POWER_ON_DELAY_TIME = 2e-6;  // (seconds)
 
     // User-defined inputs
     private acquisition_samples: number;
@@ -87,7 +89,7 @@ export class RadarSystem {
     }
 
     private calculateVelocityMaxMeasurable(): [number, number, number] {
-        const chirp_time_min = this.acquisition_time + RadarSystem.DWELL_TIME + RadarSystem.SETUP_TIME + RadarSystem.RESET_TIME;
+        const chirp_time_min = this.acquisition_time + RadarSystem.DWELL_TIME + RadarSystem.SETTLE_TIME + RadarSystem.RESET_TIME + RadarSystem.JUMPBACK_TIME;
         let required_chirp_time: number;
         let idle_time: number;
         let velocity_max_measurable: number;
@@ -98,7 +100,7 @@ export class RadarSystem {
             velocity_max_measurable = (this.wavelength * 3.6) / (4 * required_chirp_time);
         } else {
             required_chirp_time = (this.wavelength * 3.6) / (4 * this.velocity_max);
-            idle_time = required_chirp_time - (RadarSystem.DWELL_TIME + RadarSystem.SETUP_TIME + this.acquisition_time + RadarSystem.RESET_TIME);
+            idle_time = required_chirp_time - (RadarSystem.DWELL_TIME + RadarSystem.SETTLE_TIME + this.acquisition_time + RadarSystem.RESET_TIME + RadarSystem.JUMPBACK_TIME);
             velocity_max_measurable = this.velocity_max;
         }
         return [required_chirp_time, idle_time, velocity_max_measurable];
@@ -168,10 +170,12 @@ export class RadarSystem {
                 bandwidth: sweep_bandwidth / 1e6  // Convert to MHz
             },
             chirpTimingParams: {
+                dc_power_on_delay_time: RadarSystem.DC_POWER_ON_DELAY_TIME * 1e6,
                 dwell_time: RadarSystem.DWELL_TIME * 1e6,
-                setup_time: RadarSystem.SETUP_TIME * 1e6,
+                settle_time: RadarSystem.SETTLE_TIME * 1e6,
                 acquisition_time: this.acquisition_time * 1e6,
                 reset_time: RadarSystem.RESET_TIME * 1e6,
+                jumpback_time: RadarSystem.JUMPBACK_TIME * 1e6,
                 idle_time: idle_time * 1e6,
                 chirp_time: required_chirp_time * 1e6
             },

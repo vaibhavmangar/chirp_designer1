@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { RadarSystem } from '@/lib/RadarSystem';
+import ImageVisualizer from './components/ImageVisualizer';
 
 const ACQUISITION_SAMPLES = [512, 1024, 2048];
 
@@ -17,6 +18,7 @@ export default function Home() {
 
   const [results, setResults] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [showImage, setShowImage] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,6 +31,7 @@ export default function Home() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setShowImage(true);
 
     try {
       const inputs = {
@@ -69,12 +72,31 @@ export default function Home() {
     }
   };
 
+  const handleNewCalculation = () => {
+    setFormData({
+      range_res: '',
+      range_max: '',
+      velocity_max: '',
+      velocity_res: '',
+      angular_res: '',
+      frequency: ''
+    });
+    setResults([]);
+    setError('');
+    setShowImage(false);
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8 text-blue-400">
+        <h1 className="text-4xl font-bold text-center mb-4 text-blue-400">
           Radar Parameter Calculator
         </h1>
+        <div className="bg-gray-700/50 p-3 rounded-md mb-8 max-w-2xl mx-auto">
+          <p className="text-center text-lg font-semibold text-yellow-400">
+            All parameters are based on taking IF_Max = 40 MHz
+          </p>
+        </div>
 
         {/* Input Form */}
         <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-6 shadow-xl mb-8">
@@ -176,13 +198,33 @@ export default function Home() {
             </div>
           )}
 
-          <button
-            type="submit"
-            className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-          >
-            Calculate Parameters
-          </button>
+          <div className="mt-6 flex gap-4">
+            <button
+              type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            >
+              Generate
+            </button>
+            <button
+              type="button"
+              onClick={handleNewCalculation}
+              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            >
+              New Calculation
+            </button>
+          </div>
         </form>
+
+        {/* Image Visualization */}
+        {showImage && (
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-gray-300 mb-4">CHIRP Design Visualization</h3>
+            <ImageVisualizer
+              imagePath="/chirp-design.png"
+              alt="CHIRP Design"
+            />
+          </div>
+        )}
 
         {/* Results */}
         {results.map((result, idx) => (
@@ -218,26 +260,28 @@ export default function Home() {
               </div>
             </div>
 
-            {/* CHIRP Parameters */}
+            {/* CHIRP Frequency Parameters */}
             <div className="mb-8">
               <h3 className="text-xl font-semibold text-gray-300 mb-4">CHIRP Frequency Parameters</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Object.entries(result.chirpFrequencyParams).map(([key, value]) => (
                   <div key={key} className="bg-gray-700 p-4 rounded-lg">
-                    <div className="text-sm text-gray-400">{key.replace(/_/g, ' ').toUpperCase()}</div>
-                    <div className="font-mono text-lg">{Number(value).toFixed(2)} GHz</div>
+                    <div className="text-gray-400 text-sm mb-1">{key.replace(/_/g, ' ').toUpperCase()}</div>
+                    <div className="font-mono text-lg">
+                      {Number(value).toFixed(2)} {key.includes('bandwidth') ? 'MHz' : 'GHz'}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Timing Parameters */}
+            {/* CHIRP Timing Parameters */}
             <div className="mb-8">
               <h3 className="text-xl font-semibold text-gray-300 mb-4">CHIRP Timing Parameters</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Object.entries(result.chirpTimingParams).map(([key, value]) => (
                   <div key={key} className="bg-gray-700 p-4 rounded-lg">
-                    <div className="text-sm text-gray-400">{key.replace(/_/g, ' ').toUpperCase()}</div>
+                    <div className="text-gray-400 text-sm mb-1">{key.replace(/_/g, ' ').toUpperCase()}</div>
                     <div className="font-mono text-lg">{Number(value).toFixed(2)} μs</div>
                   </div>
                 ))}
@@ -249,68 +293,69 @@ export default function Home() {
               <h3 className="text-xl font-semibold text-gray-300 mb-4">Frame Parameters</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">FRAME TIME</div>
-                  <div className="font-mono text-lg">{result.frameParams.frame_time.toFixed(2)} ms</div>
+                  <div className="text-gray-400 text-sm mb-1">FRAME TIME</div>
+                  <div className="font-mono text-lg">{Number(result.frameParams.frame_time).toFixed(2)} ms</div>
                 </div>
                 <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">NUMBER OF CHIRPS</div>
+                  <div className="text-gray-400 text-sm mb-1">NUMBER OF CHIRPS PER FRAME</div>
                   <div className="font-mono text-lg">{result.frameParams.no_of_chirps}</div>
                 </div>
               </div>
             </div>
 
-            {/* Antennas */}
+            {/* Antenna Configuration */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-gray-300 mb-4">Antennas</h3>
+              <h3 className="text-xl font-semibold text-gray-300 mb-4">Minimum Number of Antennas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">TX</div>
+                  <div className="text-gray-400 text-sm mb-1">TX ANTENNAS</div>
                   <div className="font-mono text-lg">{result.antennas.tx}</div>
                 </div>
                 <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">RX</div>
+                  <div className="text-gray-400 text-sm mb-1">RX ANTENNAS</div>
                   <div className="font-mono text-lg">{result.antennas.rx}</div>
                 </div>
               </div>
             </div>
 
-            {/* Additional Parameters */}
+            {/* Time of Flight */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-gray-300 mb-4">Additional Parameters</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">TIME OF FLIGHT</div>
-                  <div className="font-mono text-lg">{result.timeOfFlight.toFixed(2)} μs</div>
-                </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-400">MEMORY REQUIRED</div>
-                  <div className="font-mono text-lg">{result.memoryRequired.toFixed(2)} kilobits per frame</div>
-                </div>
+              <h3 className="text-xl font-semibold text-gray-300 mb-4">Time of Flight</h3>
+              <div className="bg-gray-700 p-4 rounded-lg">
+                <div className="text-gray-400 text-sm mb-1">TIME OF FLIGHT TO TARGET</div>
+                <div className="font-mono text-lg">{Number(result.timeOfFlight).toFixed(2)} μs</div>
               </div>
             </div>
 
             {/* IF Bandwidth Table */}
-            <div>
-              <h3 className="text-xl font-semibold text-gray-300 mb-4">
-                IF Bandwidth Table for Range Max {result.requestedParams.range_max}m
-              </h3>
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-300 mb-4">IF Bandwidth Table</h3>
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full text-left">
                   <thead>
                     <tr className="bg-gray-700">
-                      <th className="px-4 py-2 text-left">Chirp Bandwidth (MHz)</th>
-                      <th className="px-4 py-2 text-left">Required IF Bandwidth (MHz)</th>
+                      <th className="p-4">Chirp Bandwidth (MHz)</th>
+                      <th className="p-4">Required IF Bandwidth (MHz)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {result.ifBandwidthTable.map((row: any, i: number) => (
-                      <tr key={i} className={i % 2 === 0 ? 'bg-gray-800' : 'bg-gray-700/50'}>
-                        <td className="px-4 py-2">{row.chirp_bandwidth}</td>
-                        <td className="px-4 py-2">{row.if_bandwidth.toFixed(2)}</td>
+                    {result.ifBandwidthTable.map((row, i) => (
+                      <tr key={i} className={i % 2 === 0 ? 'bg-gray-700/50' : ''}>
+                        <td className="p-4">{row.chirp_bandwidth}</td>
+                        <td className="p-4">{Number(row.if_bandwidth).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+
+            {/* Memory Required */}
+            <div>
+              <h3 className="text-xl font-semibold text-gray-300 mb-4">Memory Requirements</h3>
+              <div className="bg-gray-700 p-4 rounded-lg">
+                <div className="text-gray-400 text-sm mb-1">MEMORY REQUIRED</div>
+                <div className="font-mono text-lg">{Number(result.memoryRequired).toFixed(2)} kilobits per frame</div>
               </div>
             </div>
           </div>
